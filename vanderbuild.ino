@@ -1,3 +1,6 @@
+#include <U8g2lib.h>
+#include <U8x8lib.h>
+
 /*
  Example using the SparkFun HX711 breakout board with a scale
  By: Nathan Seidle
@@ -20,8 +23,8 @@
  and the direction the sensors deflect from zero state
  This example code uses bogde's excellent library: https://github.com/bogde/HX711
  bogde's library is released under a GNU GENERAL PUBLIC LICENSE
- Arduino pin 2 -> HX711 CLK
- 3 -> DOUT
+ Arduino pin 8 -> HX711 CLK
+ 9 -> DOUT
  5V -> VCC
  GND -> GND
 
@@ -33,27 +36,54 @@
 
 #include "HX711.h"
 
-#define DOUT  3
-#define CLK  2
+#define DOUT  9
+#define CLK  8
 
 HX711 scale(DOUT, CLK);
 
+U8G2_SSD1306_128X32_UNIVISION_F_HW_I2C u8g2(U8G2_R0);
+const float trigger = 0.3;
+
+float lastValue;
+float fullValue = 0.0;
+char output[8];
+float zeroValue;
 
 void setup() {
-  Serial.begin(9600);
-
+  u8g2.begin();
   scale.set_scale();
   scale.tare(); //Reset the scale to 0
+  zeroValue = lastValue = scale.read_average(10);
+  write("PLACE");
+  write("ITEM");
+  write("ON");
+  write("SCALE");
+  write("TO");
+  write("BEGIN!");
+  float r;
+  do {
+    write("... ");
+    r = scale.read_average(10);
+    write(" ...");
+  } while (abs((lastValue - r)/lastValue) < trigger);
+  fullValue = scale.read_average(10);
 }
 
-const float trigger = 0.7;
 
-float val;
+
 void loop() {
-  float r = scale.read_average(10);
-  if (abs(val - r)/val > trigger) {
-    Serial.print(millis());
-    Serial.println(" Detected");
-  }
-  val = r;
+  lastValue = scale.read_average(10);
+  int v = (int)((lastValue-zeroValue)/(fullValue-zeroValue)*100);
+  v = constrain(v, 0, 100);
+  snprintf(output, sizeof(output), "%d %", v);
+  write(output);
 }
+
+void write(char stringOutput[]) {
+  u8g2.clearBuffer();          // clear the internal memory
+  u8g2.setFont(u8g2_font_logisoso28_tr);  // choose a suitable font at https://github.com/olikraus/u8g2/wiki/fntlistall
+  u8g2.drawStr(8, 29, stringOutput); // write something to the internal memory
+  u8g2.sendBuffer();          // transfer internal memory to the display
+  delay(800);
+}
+
