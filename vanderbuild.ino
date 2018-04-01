@@ -49,8 +49,15 @@ float fullValue = 0.0;
 char output[8];
 float zeroValue;
 
+int red = 0;
+int yellow = 1;
+int green = 2;
+
 void setup() {
   u8g2.begin();
+  pinMode(red, OUTPUT);
+  pinMode(yellow, OUTPUT);
+  pinMode(green, OUTPUT);
   scale.set_scale();
   scale.tare(); //Reset the scale to 0
   zeroValue = lastValue = scale.read_average(10);
@@ -77,6 +84,21 @@ void loop() {
   v = constrain(v, 0, 100);
   snprintf(output, sizeof(output), "%d %", v);
   write(output);
+    //LEDs
+  if(v > 60) {
+    digitalWrite(green, HIGH);
+    digitalWrite(yellow, LOW);
+    digitalWrite(red, LOW);
+  } else if(v > 30) {
+    yellow = 1;
+    digitalWrite(yellow, HIGH);
+    digitalWrite(green, LOW);
+    digitalWrite(red, LOW);
+  } else {
+    digitalWrite(red, HIGH);
+    digitalWrite(yellow, LOW);
+    digitalWrite(green, LOW);
+  }
 }
 
 void write(char stringOutput[]) {
